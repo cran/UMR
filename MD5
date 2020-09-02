@@ -1,0 +1,15 @@
+ca5dfa99f663b27a025d5306a02d2f43 *DESCRIPTION
+a7a95dde0956f61bb6f14d503384d7a8 *NAMESPACE
+6df93e6634e90fcddaac7ab687307ba0 *R/UMR.R
+a4afe1f7e22761d1698e88550c7cbadd *R/getEcdf.R
+434eedd0179b202551054977f1a7f3e3 *R/gradDesc.R
+8e4ad04a57eb3e49555a715abe7e45de *R/gradDesc_PC.R
+852cb54170f5e4792f77115415a8e737 *R/grad_SIR_generic.R
+8cccb1128c56f5f5498660d46dee06c0 *R/grad_helpers.R
+96bb67c96ba58920f0df423a4c9f3722 *R/umr_deconv.R
+c48071b303fff07b05a20d44c4754448 *man/UMR.Rd
+a437207a0363245a62af6484f7b69593 *man/gradDesc.Rd
+9f0ddea9ccc379724046d059f315a7b2 *man/gradDesc_PC.Rd
+ab012db403813df323b728b10c20c071 *man/grad_SIR_generic.Rd
+a67056f033eef57cbace2dd0c9941c89 *man/grad_helpers.Rd
+5724a56d8134c715aa2fca18e56dff2a *man/umr_deconv.Rd
