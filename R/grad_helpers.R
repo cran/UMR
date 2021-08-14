@@ -2,6 +2,8 @@
 #' @name AA
 #' @title Helper functions for calculating gradient  of least-squares Shuffled Isotonic Regression criterion, for Laplace or for Gaussian errors
 #'
+#'
+#' 
 #' @export AA
 #' @export BB
 #' @export AAfunc_Laplace_generic
@@ -10,9 +12,15 @@
 #' @export BBfunc_Gauss_generic
 #' @export getAAfunc_est_outer
 #' @export getBBfunc_est_outer
+#' @export BBfunc_mixGauss_generic
+#' @export BBpfunc_mixGauss_generic
+#' @export BBpfunc_Gauss_generic
+#' @export BBpfunc_Laplace_generic
+#' 
 #'
 #' @importFrom stats pnorm
-#'
+#' @importFrom distr Norm
+#' 
 #' @param yy Y (response) observation vector (numeric).  Will apply
 #'     as.vector() so it may be a matrix or array with all dimensions trivial
 #'     except 1.
@@ -90,7 +98,8 @@
 #'                                        rescale=TRUE, ## factor of nn/2
 #'                                       AAfunc=!!AA_Laplace, BBfunc=!!BB_Laplace)
 
-
+## no real point in the A generic functions.  they are just the survival
+## function.
 
 
 
@@ -148,13 +157,22 @@ AAfunc_Gauss_generic <- function(dd, sig){
 
 #' @rdname grad_helpers
 #' @name BBfunc_Laplace_generic
+## BBfunc_Laplace_generic_old <- function(dd, LL){
+##     T1 <- exp(-abs(dd)/LL)/8
+##     T2 <- -dd * exp(dd/LL) / (4*LL) ## used if dd <= 0
+##     T3  <- 1/2 - exp(-dd/LL) * (2*LL+dd) / (4*LL)
+##     (T1 + T3 + (1/2 - exp(-dd/LL)/8)) * (dd>=0) +
+##         (T1 + T2 + exp(dd/LL)*3/8) * (dd<0);
+## }
 BBfunc_Laplace_generic <- function(dd, LL){
-    T1 <- exp(-abs(dd)/LL)/8
-    T2 <- -dd * exp(dd/LL) / (4*LL) ## used if dd <= 0
-    T3  <- 1/2 - exp(-dd/LL) * (2*LL+dd) / (4*LL)
-    (T1 + T3 + (1/2 - exp(-dd/LL)/8)) * (dd>=0) +
-        (T1 + T2 + exp(dd/LL)*3/8) * (dd<0);
+    (1/2 - (dd/ (4*LL))) * exp(dd/LL)  * (dd <0) +
+        (1 - ((2*LL + dd)/(4*LL)) * exp(-dd/LL) ) * (dd>=0);
 }
+
+
+
+
+#### laplace generic function can trivially be simplified 
 
 #' @rdname grad_helpers
 #' @name BBfunc_Gauss_generic
@@ -269,3 +287,75 @@ getBBfunc_est_outer <- function(eps, ww=1/length(eps)){
 ## the above BB estimated implementation can probably be done more cleverly; this is 'brute force'
 
 
+
+
+
+#' @rdname grad_helpers
+#' @name BBfunc_mixGauss_generic
+#'
+#' @param locs Vector (length LL) of mixture locations
+#' @param wws Vector (length LL, sum to 1) of mixture weights
+#' @param sigs Vector (length LL, positive) of component standard deviations
+#' ## here dd should be a matrix (usually from a call to outer())
+BBfunc_mixGauss_generic <- function(dd,
+                                    locs,
+                                    wws,
+                                    sigs){
+    if (!is.matrix(dd)) stop("dd should be a matrix.")
+    doOne <- function(dd1){
+        if (length(dd1) !=1) stop("length dd != 1")
+        arg1  <- outer(as.vector(locs), as.vector(locs), "-") + dd1
+        arg2 <- outer(as.vector(sigs), as.vector(sigs),
+                      function(sig1, sig2){ sqrt(sig1^2 + sig2^2)})
+        scale <- outer(as.vector(wws), as.vector(wws), "*")
+        sum(scale * pnorm(arg1/arg2))
+    }
+    apply(dd, c(1,2), doOne)
+}
+
+#' @rdname grad_helpers
+#' @name BBpfunc_mixGauss_generic
+## vectorize not good enough here (so used apply()).
+## here dd should be a matrix (usually from a call to outer())
+BBpfunc_mixGauss_generic <- function(dd,
+                                     locs,
+                                     wws,
+                                     sigs){
+    if (!is.matrix(dd)) stop("dd should be a matrix.")
+    doOne <- function(dd1){
+        if (length(dd1) !=1) stop("length dd != 1")
+        arg1  <- outer(as.vector(locs), as.vector(locs), "-") + dd1
+        arg2 <- outer(as.vector(sigs), as.vector(sigs),
+                      function(sig1, sig2){ sqrt(sig1^2 + sig2^2)})
+        scale <- outer(as.vector(wws), as.vector(wws), "*")
+        sum(scale * stats::dnorm(arg1/arg2) / arg2)
+    }
+    apply(dd, c(1,2), doOne)
+}
+
+#' @rdname grad_helpers
+#' @name BBpfunc_Gauss_generic
+#'
+#' @param xx Point at which to evaluate function
+BBpfunc_Gauss_generic <- function(xx, sig){
+    distr::Norm(0, sd=sig*sqrt(2))@d(xx) 
+}
+
+#' @rdname grad_helpers
+#' @name BBpfunc_Laplace_generic
+#' @param myLL is Laplace parameter.
+## derivation in paper 
+BBpfunc_Laplace_generic <- function(xx, myLL){
+    exp(-abs(xx)/myLL) * (myLL + abs(xx)) / (4 * myLL^2)
+}
+
+
+
+## ## AA func in general should be very generic and just have errdist passed in
+## AAfunc_mixGauss_generic <- function(dd,
+##                                     locs,
+##                                     wws,
+##                                     sigs){
+##     Univar
+##     1 - 
+## }

@@ -59,7 +59,7 @@ quant_deconv implements Carpentier and Schluter 2016
 
 library(distr)
 mysig <- 1 ##  std dev
-errdist <- Norm(0, sd=mysig)
+errdist <- distr::Norm(0, sd=mysig)
 mm0 <- function(xx){xx}
  nn <- 300
  xx <- sort(runif(n=nn, 0, 7))

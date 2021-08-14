@@ -1,17 +1,20 @@
 #' UMR: For computing an estimator in Unlinked Monotone Regression.
 #'
 #'
-#' A package for computing (via first order, gradient descent type
-#' algorithms) an estimator in the problem of univariate Unlinked Monotone
-#' Regression. See Balabdaoui, Doss, and Durot (2020+).
+#' A package for computing an estimator in the problem of univariate Unlinked
+#' Monotone Regression. See Balabdaoui, Doss, and Durot (2021).
 #'
 #' @section UMR functions:
 #'
-#' The main functions are gradDesc_PC (for Gradient Descent for Piecwise
-#' Constant functions) and gradDesc.  The former is faster and recommended.
-#' The latter is the more naive vanilla gradient descent method (can be used
-#' for instance to double check results from gradDesc_PC).
-#'
+#' The main function  is UMRactiveSet_trust, which uses the  trust region for
+#' second  order  optimization  of  the nonconvex  objective  function  as  a
+#' subroutine.   Other  functions  for  optimizing  are  also  provided,  for
+#' comparisons; these include gradDesc_PC  (for Gradient Descent for Piecwise
+#' Constant functions), gradDesc.  The former  is faster than the latter (but
+#' slower  than the  second  order method).   The latter  is  the more  naive
+#' vanilla gradient descent method (can be  used for instance to double check
+#' results from gradDesc_PC).
+#' 
 #' @docType package
 #'
 #' @name UMR

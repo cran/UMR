@@ -10,6 +10,10 @@
 \alias{getAAfunc_est_outer}
 \alias{getBBfunc_est}
 \alias{getBBfunc_est_outer}
+\alias{BBfunc_mixGauss_generic}
+\alias{BBpfunc_mixGauss_generic}
+\alias{BBpfunc_Gauss_generic}
+\alias{BBpfunc_Laplace_generic}
 \title{Helper functions for calculating gradient  of least-squares Shuffled Isotonic Regression criterion, for Laplace or for Gaussian errors}
 \usage{
 AA(yy, mm, func)
@@ -27,6 +31,14 @@ BBfunc_Gauss_generic(dd, sig)
 getAAfunc_est_outer(eps, ww = 1/length(eps))
 
 getBBfunc_est_outer(eps, ww = 1/length(eps))
+
+BBfunc_mixGauss_generic(dd, locs, wws, sigs)
+
+BBpfunc_mixGauss_generic(dd, locs, wws, sigs)
+
+BBpfunc_Gauss_generic(xx, sig)
+
+BBpfunc_Laplace_generic(xx, myLL)
 }
 \arguments{
 \item{yy}{Y (response) observation vector (numeric).  Will apply
@@ -54,6 +66,17 @@ are repeats this should be encoded in ww).}
 \item{ww}{is vector of weights of same length as eps, and summing to 1.
 Default is a weight of 1/length(eps) for each value of eps; if eps has
 been pre-binned then ww is the weights from binning.}
+
+\item{locs}{Vector (length LL) of mixture locations}
+
+\item{wws}{Vector (length LL, sum to 1) of mixture weights}
+
+\item{sigs}{Vector (length LL, positive) of component standard deviations
+## here dd should be a matrix (usually from a call to outer())}
+
+\item{xx}{Point at which to evaluate function}
+
+\item{myLL}{is Laplace parameter.}
 }
 \description{
 Helper functions for calculating gradient  of least-squares Shuffled Isotonic Regression criterion, for Laplace or for Gaussian errors

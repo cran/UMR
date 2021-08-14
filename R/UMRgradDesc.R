@@ -4,7 +4,7 @@
 
 #' @title Basic gradient descent implementation
 #'
-#' @export
+#' @export UMRgradDesc
 #'
 #' @param yy Y (response) observation vector (numeric)
 #' @param grad a function(yy, mm) where mm is same length of yy and is the
@@ -59,7 +59,7 @@
 #' printevery <- 1000 
 #' init <- yy
 #' 
-#' mmhat <- gradDesc(yy=yy, grad=mygradSIR, ## from settings file
+#' mmhat <- UMRgradDesc(yy=yy, grad=mygradSIR, ## from settings file
 #'                      init=init,
 #'                      stepsize=stepsize, MM=MM,
 #'                      printevery=printevery,
@@ -70,7 +70,9 @@
 #' linreg_std <- lm(yy~xx)
 #' 
 
-gradDesc <- function(yy, grad, init,
+#' @rdname UMRgradDesc
+#' @name UMRgradDesc
+gradDesc <- UMRgradDesc <- function(yy, grad, init,
                      stepsize, MM,
                      printevery, filename){
     curr <- init

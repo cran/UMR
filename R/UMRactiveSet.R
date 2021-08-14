@@ -1,0 +1,243 @@
+## "Active Set" approach to finding (local) minima, in unlinked monotone regression.
+
+#' @title An active set approach to minimizing objective in Unlinked Monotone
+#'     Regression
+#'
+#' @export
+#'
+#' @param yy Y (response) observation vector (numeric)
+#' 
+#' @param grad a function(yy, mm) where mm  is the
+#'     previous iterate value (i.e., the estimate vector).
+#' @param CC_SIR A curvature function object (denoted "C" in the paper).   See CC_SIR_generic() and examples.
+#' @param init Initial value of estimate ('mm').  Vector, length may be different than length(yy). See 'counts' input.
+#' @param counts Together 'init' and 'counts' serve as the initialization; the implied initial vector is rep.int(init, counts).
+#' @param stepsize Gradient descent stepsize.  
+#'
+#' @param MM  A number  of iterations.   May not  use them  all.  MM  is not
+#'     exactly the total  number of iterations used in the  sense that within
+#'     each of  MM iterations, we  will possibly run another  algorithm which
+#'     may take up to MM iterations (but usually takes many fewer).
+#' @param tol_end  Used as tolerance at various points .  Generally algorithm (and
+#'     some subalgorithms) end once sum(abs(mm-mmprev))  < tol, or you hit MM
+#'     iterations.
+#'
+#' @param tol_collapse Collapsing roughly equal mm values into each other.
+#' 
+#' @param  printevery integer  value (generally  << MM).   Every 'printevery'
+#'     iterations, a count will be printed and the output saved.
+#' @param filename filename (path) to save output to.
+#'
+#'
+#' param
+#' ww_y Weights (nonnegative, sum to 1) corresponding to yy.  Same length as yy.
+#'
+#'
+#' @details  Uses first order  (gradient) for optimization, and  uses certain
+#'     second   derivative  computations   to  leave   saddle  points.    See
+#'     Balabdaoui, Doss, and Durot (20xx).  Note that yy and mm (i.e., number
+#'     covariates) may have different length.
+#' 
+#'
+#'
+#' 
+
+## Need think on stepsize /nny (curvature 'step')
+
+UMRactiveSet <- function(yy,
+                         ## ww_y = rep(1/length(yy), length(yy)),
+                         grad,
+                         CC_SIR,
+                         init,
+                         counts = rep(1, length(init)),
+                         stepsize, MM, tol_end=1e-4, tol_collapse,
+                         printevery, filename){
+
+
+    ## mmprev and mmcurr_full are only used for stopping conditions
+    mmprev <- rep(Inf, length(init))
+    mmcurr_full <- rep(0, length(init))
+    mmcurr <- init
+    nnx <- sum(counts)
+    nny <- length(yy)
+
+    
+    ii <- 1
+    while (ii<= ceiling(sqrt(MM)) && sum(abs(mmcurr_full-mmprev))>= tol_end){
+        mmprev <- rep.int(mmcurr, times=counts)
+        ## mmprev <- mmcurr_full
+        if ((ii %% printevery) == 0) {
+            print(paste0("Completed ", ii, "th iteration."));
+            save(yy,
+                 ii,
+                 ## mmhat_f, quantile_f,
+                 ## errdist, mm0, ## model params
+                 stepsize, MM,  ## algorithm params
+                 ## outhist, ## waste of memory?
+                 mmhat = mmcurr,
+                 file=filename)
+        }
+
+
+        mmcurr <- gradDesc_fixed_df(yy, grad,
+                                    init=mmcurr,
+                                    counts=counts,
+                                    stepsize=stepsize,
+                                    MM=ceiling(sqrt(MM)),
+                                    tol=tol_end,
+                                    printevery=printevery, filename=filename)
+
+
+        ## ##### Currently have two sets of code for collapsing non-unique
+        ## ##### entries.  Think I only need the latter?
+        
+
+        ## ## The "collapse" non-unique entries / "activate constraints" step
+        {
+            ## sort needed for simplifying vector.  Unclear algorithmically if this
+            ## (probabilistically) is the best thing to do or if its better to
+            ## just let the length grow over time)
+            neword <- order(mmcurr)
+            mmcurr <- mmcurr[neword]
+            counts <- counts[neword]
+            mm_active <- rle(mmcurr)
+            mmcurr <- mm_active$values
+            metacounts <- mm_active$lengths
+            inds <- cumsum(metacounts)
+            pp <- length(inds)
+            indsstart <- c(0, inds[-pp])+1
+            countidcs <- mapply(":", indsstart, inds)
+            ## accumulate counts
+            counts <- sapply(countidcs, function(xx, bb){sum(bb[xx])}, counts)
+        }
+
+        
+        ## ###### Group (approximately) non-unique entries
+        begidx <- 1
+        newidx <- 1;
+        nn_i <- length(mmcurr)        
+        mm_new <- counts_new <- rep(NA, nn_i)
+        for (jj in 2:(nn_i+1)){
+            if ((jj==nn_i+1) || ((mmcurr[jj] - mmcurr[begidx]) > tol_collapse)){
+                mm_new[newidx] <- mean(mmcurr[begidx:(jj-1)])
+                counts_new[newidx] <- sum(counts[begidx:(jj-1)])
+                begidx <- jj
+                newidx <- newidx+1
+            }
+        }
+        nn_i  <- sum(!is.na(mm_new));
+        mmcurr <- mm_new[1:nn_i]
+        if (sum(counts_new[!is.na(counts_new)]) != nnx){
+            print(counts_new)
+            print(counts)
+        }
+        counts <- counts_new[1:nn_i];
+       
+        curv <- CC_SIR(yy=yy, mm=mmcurr,
+                       ww_y=rep(1/nny, nny),
+                       ww_m=counts/nnx)
+        minidx <- which.min(curv)
+        if (curv[minidx] >= 0)
+            break;
+        
+        ## {
+        ## negidcs <- curv<0
+        ## posidcs <- !negidcs
+        ## numnegs <- sum(negidcs)
+        ## evens <- (1:numnegs)*2
+        ## odds <- ((1:numnegs)*2)-1
+
+        ## newmm <- rep(mmcurr[negidcs], each=2)
+        ## newcounts <- rep(counts[negidcs], each=2)
+
+
+        ## mmcurr <- (c(mmcurr[posidcs], newmm))
+        ## ord <- order(mmcurr)
+        ## ## note that the following may modify order; thus we find ord first.
+
+        ## newmm[evens] <- newmm[evens] + sqrt(stepsize/nnx)
+        ## newmm[odds] <- newmm[odds] - sqrt(stepsize/nnx)
+
+       
+        ## mmcurr <- (c(mmcurr[posidcs], newmm))
+        ## mmcurr <- mmcurr[ord]  ## could be not sorted actually bc of the step taken
+
+        ## newcounts[evens] <- floor(newcounts[evens] / 2);
+        ## newcounts[odds]  <- ceiling(newcounts[odds] / 2);
+        ## counts <- c(counts[posidcs], newcounts)
+        ## counts <- counts[ord]
+
+        ## if (sum(counts) != nnx){
+        ##     print(newcounts)
+        ##     print(counts)
+        ##     stop("sum(counts) != nnx")
+        ## }
+        ## if (length(counts) != length(mmcurr))        {
+        ##     print(counts)
+        ##     print(mmcurr)
+        ##     stop("length(counts) != length(mmcurr)")
+        ## }
+
+        ## }
+
+        {
+        
+        ## curvlen <- length(curv)
+        ## ## the following code is inefficient
+        ## for (kk in 1:curvlen){
+        ##     ## ## take one step in " negatively curved directions" and
+        ##     ## ## then iterate
+        ##     pp <- length(mmcurr)
+        ##     if (curv[kk] < 0){
+        ##     }
+            
+        ##     ## double up the minimum index
+        ##     mmcurr <- c(mmcurr[1:minidx], mmcurr[minidx:pp])
+        ##     counts <- c(counts[1:minidx], counts[minidx:pp])
+        ##     ## take step
+        ##     counts[minidx] <- floor(counts[minidx] / 2);
+        ##     counts[minidx+1] <- ceiling(counts[minidx+1] / 2);
+        ##     ##         stopifnot( counts[minidx])
+        ##     ## mmcurr[minidx] <- mmcurr[minidx] - stepsize/nnx;
+        ##     ## mmcurr[minidx+1] <- mmcurr[minidx+1] + stepsize/nnx;
+        ##     mmcurr[minidx] <- mmcurr[minidx] - sqrt(stepsize/nnx);
+        ##     mmcurr[minidx+1] <- mmcurr[minidx+1] + sqrt(stepsize/nnx);
+            ## }
+
+        }
+
+        ## ## take one step in "most negatively curved direction" and
+        ## ## then iterate
+        pp <- length(mmcurr)
+        ## double up the minimum index
+        mmcurr <- c(mmcurr[1:minidx], mmcurr[minidx:pp])
+        counts <- c(counts[1:minidx], counts[minidx:pp])
+        ## take step
+        counts[minidx] <- floor(counts[minidx] / 2);
+        counts[minidx+1] <- ceiling(counts[minidx+1] / 2);
+        ##         stopifnot( counts[minidx])
+        ## mmcurr[minidx] <- mmcurr[minidx] - stepsize/nnx;
+        ## mmcurr[minidx+1] <- mmcurr[minidx+1] + stepsize/nnx;
+        mmcurr[minidx] <- mmcurr[minidx] - sqrt(stepsize/nnx);
+        mmcurr[minidx+1] <- mmcurr[minidx+1] + sqrt(stepsize/nnx);
+
+
+        ## for comparison with mmprev.  Not sure if this does or
+        ## doesn't slow anything down (if nnx equals nny then
+        ## shouldn't be dramatic slowdown).
+        mmcurr_full <- rep.int(mmcurr, counts)
+        ii <- ii+1                
+    }
+
+    
+
+    
+    mmord <- order(mmcurr)
+    mmcurr <- mmcurr[mmord]
+    counts <- counts[mmord]
+    
+    res <-list(mm=mmcurr,
+               counts=counts,
+               mm_full =rep.int(mmcurr, times=counts))
+    return(res);
+}

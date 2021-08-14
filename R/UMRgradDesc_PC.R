@@ -4,7 +4,7 @@
 
 #' @title Gradient Descent implemented for Piecewise Constant functions
 #'
-#' @export
+#' @export UMRgradDesc_PC
 #'
 #'
 #' @param yy Y (response) observation vector (numeric)
@@ -80,7 +80,7 @@
 #' init <- yy
 #' 
 #' 
-#'  mmhat <- gradDesc_PC(yy=yy, grad=mygradSIR, ## from settings file
+#'  mmhat <- UMRgradDesc_PC(yy=yy, grad=mygradSIR, ## from settings file
 #'                       init=init,
 #'                       stepsize=stepsize, MM=MM,
 #'                       JJ=JJ, eps=eps,
@@ -94,7 +94,8 @@
 
 
 
-gradDesc_PC <- function(yy, grad, init,
+UMRgradDesc_PC <-
+    gradDesc_PC <- function(yy, grad, init,
                         stepsize, MM,
                         eps,
                         JJ=50, ## integer, number grad steps per
